@@ -1,0 +1,79 @@
+{
+  "manifest_version": "0.3",
+  "name": "prro-mcp",
+  "display_name": "PRRO.cloud",
+  "version": "0.0.0",
+  "description": "Read-only access to PRRO.cloud cash registers, shifts, fiscal tasks, billing and webhooks.",
+  "long_description": "MCP server for the PRRO.cloud fiscalization API (Ukrainian software cash registers, PRRO). Lets the assistant see the real state of your cash registers, shifts, fiscal tasks, billing and webhook deliveries to help write and debug an integration. Read-only: it never issues receipts, opens or closes shifts, or changes settings.",
+  "author": {
+    "name": "PRRO.cloud",
+    "email": "support@prro.cloud",
+    "url": "https://prro.cloud"
+  },
+  "homepage": "https://prro.cloud",
+  "documentation": "https://github.com/prro-cloud/prro-mcp#readme",
+  "support": "https://github.com/prro-cloud/prro-mcp/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prro-cloud/prro-mcp"
+  },
+  "license": "Apache-2.0",
+  "icon": "icon.png",
+  "keywords": ["prro", "fiscalization", "ukraine", "receipts", "cash register", "dps"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/prro-mcp",
+    "mcp_config": {
+      "command": "${__dirname}/server/prro-mcp",
+      "args": [],
+      "env": {
+        "PRRO_TOKEN": "${user_config.prro_token}",
+        "PRRO_BASE_URL": "${user_config.base_url}",
+        "PRRO_LANG": "${user_config.lang}"
+      },
+      "platform_overrides": {
+        "win32": {
+          "command": "${__dirname}/server/prro-mcp.exe"
+        }
+      }
+    }
+  },
+  "user_config": {
+    "prro_token": {
+      "type": "string",
+      "title": "PRRO.cloud API token",
+      "description": "Machine API token issued in the PRRO.cloud cabinet. Use a separate token limited to the cash registers the assistant should see.",
+      "sensitive": true,
+      "required": true
+    },
+    "base_url": {
+      "type": "string",
+      "title": "API base URL",
+      "description": "Change only for a local or staging API.",
+      "default": "https://api.prro.cloud",
+      "required": false
+    },
+    "lang": {
+      "type": "string",
+      "title": "Language of API error messages",
+      "description": "uk or en.",
+      "default": "uk",
+      "required": false
+    }
+  },
+  "tools": [
+    {"name": "get_version", "description": "PRRO.cloud API service, contract and server versions."},
+    {"name": "whoami", "description": "Client, scopes and cash registers of the token."},
+    {"name": "get_dps_status", "description": "Online/offline mode of work with the DPS."},
+    {"name": "list_cash_registers", "description": "Cash registers the token can reach."},
+    {"name": "get_cash_register_state", "description": "Shift, totals, cash balance and offline session of a cash register."},
+    {"name": "get_task", "description": "Status, result or DPS fault of a fiscal task."},
+    {"name": "get_billing_usage", "description": "Balance and billed receipts for a period."},
+    {"name": "list_invoices", "description": "Invoices per billing period."},
+    {"name": "list_webhooks", "description": "Webhook endpoints, subscriptions and limit."},
+    {"name": "list_webhook_deliveries", "description": "Delivery history of a webhook with receiver errors."}
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32"]
+  }
+}

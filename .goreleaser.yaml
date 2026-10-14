@@ -1,0 +1,69 @@
+# Релізна збірка: make snapshot — локально без публікації; у CI запускається
+# на тег v* (.github/workflows/release.yml). Пакет prro-mcp.mcpb збирає
+# scripts/mcpb.sh із бінарників у dist/ уже після goreleaser.
+version: 2
+
+project_name: prro-mcp
+
+builds:
+  - id: prro-mcp
+    main: ./cmd/prro-mcp
+    binary: prro-mcp
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+# Один бінарник macOS для обох архітектур — для пакета .mcpb.
+universal_binaries:
+  - id: prro-mcp-darwin
+    ids: [prro-mcp]
+    name_template: prro-mcp
+
+archives:
+  - id: prro-mcp
+    ids: [prro-mcp]
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: checksums.txt
+
+dockers_v2:
+  - id: prro-mcp
+    ids: [prro-mcp]
+    images:
+      - ghcr.io/prro-cloud/prro-mcp
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.title: prro-mcp
+      org.opencontainers.image.description: Read-only MCP server for the PRRO.cloud API
+      org.opencontainers.image.source: https://github.com/prro-cloud/prro-mcp
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.licenses: Apache-2.0
+
+changelog:
+  disable: true
+
+release:
+  github:
+    owner: prro-cloud
+    name: prro-mcp
+  footer: |
+    Зміни — у [CHANGELOG.md](https://github.com/prro-cloud/prro-mcp/blob/main/CHANGELOG.md).

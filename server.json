@@ -1,0 +1,95 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.prro-cloud/prro-mcp",
+  "title": "PRRO.cloud",
+  "description": "Read-only access to PRRO.cloud fiscal cash registers, shifts, tasks, billing and webhooks.",
+  "websiteUrl": "https://prro.cloud",
+  "repository": {
+    "url": "https://github.com/prro-cloud/prro-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/prro-cloud/prro-mcp/releases/download/v0.1.0/prro-mcp.mcpb",
+      "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PRRO_TOKEN",
+          "description": "Machine API token issued in the PRRO.cloud cabinet",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "PRRO_BASE_URL",
+          "description": "API base URL instead of https://api.prro.cloud, for a local or staging API",
+          "default": "https://api.prro.cloud"
+        },
+        {
+          "name": "PRRO_LANG",
+          "description": "Language of API error messages",
+          "default": "uk",
+          "choices": [
+            "uk",
+            "en"
+          ]
+        },
+        {
+          "name": "PRRO_MCP_LOG_LEVEL",
+          "description": "Level of the server log written to stderr",
+          "default": "info",
+          "choices": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        }
+      ]
+    },
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/prro-cloud/prro-mcp:0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PRRO_TOKEN",
+          "description": "Machine API token issued in the PRRO.cloud cabinet",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "PRRO_BASE_URL",
+          "description": "API base URL instead of https://api.prro.cloud, for a local or staging API",
+          "default": "https://api.prro.cloud"
+        },
+        {
+          "name": "PRRO_LANG",
+          "description": "Language of API error messages",
+          "default": "uk",
+          "choices": [
+            "uk",
+            "en"
+          ]
+        },
+        {
+          "name": "PRRO_MCP_LOG_LEVEL",
+          "description": "Level of the server log written to stderr",
+          "default": "info",
+          "choices": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        }
+      ]
+    }
+  ]
+}
