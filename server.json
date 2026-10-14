@@ -13,7 +13,7 @@
     {
       "registryType": "mcpb",
       "identifier": "https://github.com/prro-cloud/prro-mcp/releases/download/v0.1.0/prro-mcp.mcpb",
-      "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "fileSha256": "576f85bd19a47a1ed3d8d4060175c50db12f14cb01d14e484fa82f598cbe77fe",
       "transport": {
         "type": "stdio"
       },

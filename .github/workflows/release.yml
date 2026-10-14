@@ -38,3 +38,14 @@ jobs:
       - run: gh release upload "$GITHUB_REF_NAME" dist/prro-mcp.mcpb dist/server.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Публікація в реєстр MCP — окремим workflow, щоб його можна було
+  # повторити для вже випущеного тега.
+  registry:
+    needs: release
+    uses: ./.github/workflows/registry.yml
+    with:
+      tag: ${{ github.ref_name }}
+    permissions:
+      contents: read
+      id-token: write

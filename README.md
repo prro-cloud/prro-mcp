@@ -187,10 +187,11 @@ make sync-spec  # оновити копію контракту з ../prro-go
 1. Перенести зміни з `[Unreleased]` у розділ версії в `CHANGELOG.md`.
 2. `git tag v0.1.0 && git push origin v0.1.0` — workflow `Release` збере
    архіви, образ `ghcr.io/prro-cloud/prro-mcp`, пакет `prro-mcp.mcpb` і
-   `server.json` з SHA-256 пакета та додасть їх до релізу.
-3. Покласти `server.json` із релізу в корінь репозиторію, закомітити і
-   опублікувати в реєстрі MCP: `mcp-publisher login github`,
-   `mcp-publisher publish`.
+   `server.json` з SHA-256 пакета, додасть їх до релізу, а workflow
+   `MCP Registry` опублікує `server.json` у реєстрі MCP через GitHub OIDC.
+   Повторити публікацію для вже випущеного тега:
+   `gh workflow run registry.yml -f tag=v0.1.0`.
+3. Покласти `server.json` із релізу в корінь репозиторію і закомітити.
 
 Локально без публікації: `make snapshot`, потім `scripts/mcpb.sh 0.0.0`.
 
