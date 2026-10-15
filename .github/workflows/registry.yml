@@ -1,0 +1,40 @@
+name: MCP Registry
+
+# Публікує server.json релізу в реєстр MCP як io.github.prro-cloud/prro-mcp.
+# Автентифікація — GitHub OIDC: реєстр видає права на io.github.<власник
+# репозиторію>/* без секретів і без OAuth-застосунку. Викликається з
+# release.yml після збірки; вручну — для вже випущеного тега.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, e.g. v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # Саме server.json з релізу: у ньому SHA-256 пакета .mcpb, зібраного
+      # цим релізом.
+      - name: Download server.json of the release
+        run: gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p server.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+      # Остання версія: реєстр у preview, стара може не прийняти токен
+      # ("invalid audience").
+      - name: Install mcp-publisher
+        run: curl -fsSL https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz | tar xz mcp-publisher
+      - run: ./mcp-publisher login github-oidc
+      - run: ./mcp-publisher publish
