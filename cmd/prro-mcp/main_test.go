@@ -12,7 +12,7 @@ func env(m map[string]string) func(string) string {
 }
 
 func TestLoadConfig(t *testing.T) {
-	cfg, err := loadConfig(env(map[string]string{"PRRO_TOKEN": " tok "}))
+	cfg, err := loadConfig(env(map[string]string{"PRRO_TOKEN": " tok "}), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,7 +22,7 @@ func TestLoadConfig(t *testing.T) {
 
 	cfg, err = loadConfig(env(map[string]string{
 		"PRRO_TOKEN": "tok", "PRRO_BASE_URL": "http://localhost:8080", "PRRO_LANG": "EN", "PRRO_MCP_LOG_LEVEL": "debug",
-	}))
+	}), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,9 +41,46 @@ func TestLoadConfigErrors(t *testing.T) {
 		"host only": {"PRRO_TOKEN": "tok", "PRRO_BASE_URL": "localhost:8080"},
 		"ftp":       {"PRRO_TOKEN": "tok", "PRRO_BASE_URL": "ftp://api.prro.cloud"},
 	} {
-		if _, err := loadConfig(env(m)); err == nil {
+		if _, err := loadConfig(env(m), false); err == nil {
 			t.Errorf("%s: want an error", name)
 		}
+	}
+}
+
+func TestLoadConfigRemote(t *testing.T) {
+	cfg, err := loadConfig(env(nil), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.token != "" || cfg.ratePerMinute != defaultRatePerMinute {
+		t.Errorf("defaults = %+v", cfg)
+	}
+
+	cfg, err = loadConfig(env(map[string]string{"PRRO_MCP_RATE_LIMIT": "0"}), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.ratePerMinute != 0 {
+		t.Errorf("ratePerMinute = %d, want 0", cfg.ratePerMinute)
+	}
+
+	for name, m := range map[string]map[string]string{
+		"token":         {"PRRO_TOKEN": "tok"},
+		"bad rate":      {"PRRO_MCP_RATE_LIMIT": "fast"},
+		"negative rate": {"PRRO_MCP_RATE_LIMIT": "-1"},
+		"bad base url":  {"PRRO_BASE_URL": "api.prro.cloud"},
+	} {
+		if _, err := loadConfig(env(m), true); err == nil {
+			t.Errorf("%s: want an error", name)
+		}
+	}
+}
+
+func TestRunHTTPWithToken(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	err := run([]string{"-http", "127.0.0.1:0"}, env(map[string]string{"PRRO_TOKEN": "tok"}), &stdout, &stderr)
+	if err == nil || !strings.Contains(err.Error(), "Authorization") {
+		t.Errorf("err = %v", err)
 	}
 }
 

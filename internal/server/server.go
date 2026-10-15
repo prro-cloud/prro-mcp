@@ -3,6 +3,7 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"log/slog"
 	"time"
@@ -36,6 +37,9 @@ type Options struct {
 	Version string
 	// Logger — журнал; nil — без журналу.
 	Logger *slog.Logger
+	// SDKLogger — журнал самого go-sdk (підключення сесій тощо); nil —
+	// Logger.
+	SDKLogger *slog.Logger
 }
 
 // New повертає сервер з усіма інструментами й ресурсом. Клієнт API для
@@ -53,7 +57,7 @@ func New(src clientsrc.Source, opts Options) *mcp.Server {
 		WebsiteURL:  "https://prro.cloud",
 	}, &mcp.ServerOptions{
 		Instructions: instructions,
-		Logger:       logger,
+		Logger:       cmp.Or(opts.SDKLogger, logger),
 	})
 	tools.Register(s, src, tools.Options{Version: opts.Version})
 	s.AddResource(&mcp.Resource{

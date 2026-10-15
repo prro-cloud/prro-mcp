@@ -55,8 +55,9 @@ func toolError(err error) error {
 func hintFor(err error) string {
 	switch {
 	case errors.Is(err, prro.ErrUnauthorized):
-		return "The PRRO_TOKEN is missing, invalid, expired or revoked. " +
-			"Ask the user to issue a new machine token in the PRRO.cloud cabinet and restart the MCP server."
+		return "The API token is missing, invalid, expired or revoked. " +
+			"Ask the user to issue a new machine token in the PRRO.cloud cabinet and put it in the MCP client config: " +
+			"PRRO_TOKEN for a local server (then restart it), the Authorization: Bearer header for a remote one."
 	case errors.Is(err, prro.ErrForbidden):
 		return "This token is restricted to specific cash registers and cannot read client-level " +
 			"resources (billing, invoices, webhooks). A token with access to all cash registers is required."

@@ -6,6 +6,22 @@
 
 ## [Unreleased]
 
+### Додано
+
+- Віддалений сервер: прапорець `-http :8080` вмикає Streamable HTTP без
+  сесій на `/mcp` і перевірку живості на `/healthz`. Токен кожен клієнт
+  передає в `Authorization: Bearer`; сервер пересилає його в API і не
+  зберігає. Ліміт запитів на токен — `PRRO_MCP_RATE_LIMIT` (типово 120 на
+  хвилину).
+- `server.json`: віддалений сервер `https://mcp.prro.cloud/mcp` у `remotes`.
+
+### Змінено
+
+- Підказка до помилки 401 пояснює, де замінити токен і для локального, і
+  для віддаленого сервера.
+
+## [0.1.0] — 2026-10-14
+
 Перший випуск: prro-go 0.2.0, контракт API 0.6.0.
 
 ### Додано
@@ -26,4 +42,5 @@
 - Збірки для Linux, macOS і Windows, пакет `prro-mcp.mcpb` для Claude
   Desktop, образ `ghcr.io/prro-cloud/prro-mcp`.
 
-[Unreleased]: https://github.com/prro-cloud/prro-mcp/commits/main
+[Unreleased]: https://github.com/prro-cloud/prro-mcp/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/prro-cloud/prro-mcp/releases/tag/v0.1.0

@@ -91,5 +91,27 @@
         }
       ]
     }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.prro.cloud/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Machine API token issued in the PRRO.cloud cabinet",
+          "value": "Bearer {token}",
+          "isRequired": true,
+          "isSecret": true,
+          "variables": {
+            "token": {
+              "description": "Machine API token issued in the PRRO.cloud cabinet",
+              "isRequired": true,
+              "isSecret": true
+            }
+          }
+        }
+      ]
+    }
   ]
 }

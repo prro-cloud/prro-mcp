@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/prro-cloud/prro-mcp/internal/httpserver"
 	"github.com/prro-cloud/prro-mcp/internal/server"
 	"github.com/prro-cloud/prro-mcp/internal/tools"
 )
@@ -45,8 +46,10 @@ func TestMCPBManifest(t *testing.T) {
 	}
 }
 
-// envVars — змінні оточення, які читає loadConfig; клієнти з реєстру MCP
-// будують з environmentVariables форму налаштувань.
+// envVars — змінні оточення локального сервера, які читає loadConfig;
+// клієнти з реєстру MCP будують з environmentVariables форму налаштувань.
+// PRRO_MCP_RATE_LIMIT сюди не входить: це налаштування віддаленого сервера,
+// а не клієнта.
 var envVars = []string{"PRRO_TOKEN", "PRRO_BASE_URL", "PRRO_LANG", "PRRO_MCP_LOG_LEVEL"}
 
 func TestServerJSON(t *testing.T) {
@@ -59,6 +62,14 @@ func TestServerJSON(t *testing.T) {
 				Name string `json:"name"`
 			} `json:"environmentVariables"`
 		} `json:"packages"`
+		Remotes []struct {
+			Type    string `json:"type"`
+			URL     string `json:"url"`
+			Headers []struct {
+				Name     string `json:"name"`
+				IsSecret bool   `json:"isSecret"`
+			} `json:"headers"`
+		} `json:"remotes"`
 	}
 	readJSON(t, "../../server.json", &s)
 	if s.Name != "io.github.prro-cloud/prro-mcp" {
@@ -80,5 +91,15 @@ func TestServerJSON(t *testing.T) {
 	}
 	if !slices.Equal(types, []string{"mcpb", "oci"}) {
 		t.Errorf("packages = %v", types)
+	}
+	if len(s.Remotes) != 1 {
+		t.Fatalf("remotes = %+v, want one", s.Remotes)
+	}
+	r := s.Remotes[0]
+	if r.Type != "streamable-http" || r.URL != "https://mcp.prro.cloud"+httpserver.Path {
+		t.Errorf("remote = %s %s", r.Type, r.URL)
+	}
+	if len(r.Headers) != 1 || r.Headers[0].Name != "Authorization" || !r.Headers[0].IsSecret {
+		t.Errorf("remote headers = %+v, want a secret Authorization", r.Headers)
 	}
 }
