@@ -1,0 +1,49 @@
+# Віддалений MCP-сервер PRRO.cloud — Streamable HTTP на /mcp.
+#
+# Файл за специфікацією Compose (https://compose-spec.io) без розширень
+# конкретних платформ: його розуміють docker compose, podman compose і панелі,
+# що розгортають стеки з compose-файлу. Значення — зі змінних оточення або
+# .env поруч (шаблон — .env.example); у панелях — зі змінних стека.
+#
+#   docker compose --env-file .env up -d
+#
+# Перед сервером потрібен зворотний проксі з TLS — див. README.md.
+name: prro-mcp
+
+services:
+  prro-mcp:
+    image: ${PRRO_MCP_IMAGE:-ghcr.io/prro-cloud/prro-mcp}:${PRRO_MCP_VERSION:?set PRRO_MCP_VERSION, e.g. 0.2.0}
+    command: ["-http", ":8080"]
+    restart: unless-stopped
+    environment:
+      PRRO_BASE_URL: ${PRRO_BASE_URL:-https://api.prro.cloud}
+      PRRO_LANG: ${PRRO_LANG:-uk}
+      PRRO_MCP_LOG_LEVEL: ${PRRO_MCP_LOG_LEVEL:-info}
+      PRRO_MCP_RATE_LIMIT: ${PRRO_MCP_RATE_LIMIT:-120}
+      # PRRO_TOKEN навмисно відсутній: з -http сервер із ним не стартує —
+      # токен приносить кожен клієнт.
+    # Порт, до якого підключається проксі. Лише loopback або приватна
+    # адреса: опублікований порт Docker обходить файрвол хоста.
+    ports:
+      - "${PRRO_MCP_PUBLISH:-127.0.0.1:8080}:8080"
+    # Сервер нічого не пише на диск і не потребує привілеїв.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # В образі distroless немає shell і wget — сервер перевіряє себе сам.
+      test: ["CMD", "/usr/local/bin/prro-mcp", "-healthcheck", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    # Після SIGTERM сервер чекає на поточні виклики до 25 секунд.
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: ${PRRO_MCP_MEMORY:-128M}
+    # Мережа — лише власна мережа проєкту, яку compose створює сам. Сервер —
+    # звичайний клієнт публічного API і нічого внутрішнього не потребує: не
+    # підключайте його до мереж, де живуть бази чи інші сервіси.

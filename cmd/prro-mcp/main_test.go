@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -73,6 +75,20 @@ func TestLoadConfigRemote(t *testing.T) {
 		if _, err := loadConfig(env(m), true); err == nil {
 			t.Errorf("%s: want an error", name)
 		}
+	}
+}
+
+func TestRunHealthcheck(t *testing.T) {
+	ok := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) }))
+	defer ok.Close()
+	var stdout, stderr bytes.Buffer
+	if err := run([]string{"-healthcheck", ok.URL}, env(nil), &stdout, &stderr); err != nil {
+		t.Errorf("healthy server: %v", err)
+	}
+	down := httptest.NewServer(http.NotFoundHandler())
+	defer down.Close()
+	if err := run([]string{"-healthcheck", down.URL}, env(nil), &stdout, &stderr); err == nil {
+		t.Error("404: want an error")
 	}
 }
 

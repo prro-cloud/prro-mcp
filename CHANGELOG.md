@@ -13,6 +13,10 @@
   передає в `Authorization: Bearer`; сервер пересилає його в API і не
   зберігає. Ліміт запитів на токен — `PRRO_MCP_RATE_LIMIT` (типово 120 на
   хвилину).
+- Прапорець `-healthcheck URL` для HEALTHCHECK Docker: в образі distroless
+  немає ні shell, ні wget.
+- `deploy/compose.yaml` за специфікацією Compose і інструкція розгортання
+  з прикладами Caddy і nginx.
 - `server.json`: віддалений сервер `https://mcp.prro.cloud/mcp` у `remotes`.
 
 ### Змінено

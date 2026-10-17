@@ -56,6 +56,7 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) er
 	fs.SetOutput(stderr)
 	showVersion := fs.Bool("version", false, "print the version and exit")
 	httpAddr := fs.String("http", "", "serve Streamable HTTP on `addr` (e.g. :8080) instead of stdio")
+	healthURL := fs.String("healthcheck", "", "GET `url` (e.g. http://127.0.0.1:8080/healthz), exit 0 on 200 OK; for Docker health checks")
 	fs.Usage = func() {
 		fmt.Fprint(stderr, usage)
 		fs.PrintDefaults()
@@ -70,6 +71,9 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) er
 	if *showVersion {
 		fmt.Fprintf(stdout, "prro-mcp %s (prro-go %s, API contract %s)\n", v, prro.Version, prro.APIVersion)
 		return nil
+	}
+	if *healthURL != "" {
+		return healthcheck(*healthURL)
 	}
 
 	remote := *httpAddr != ""
@@ -148,6 +152,26 @@ func serveHTTP(ctx context.Context, addr string, srv *mcp.Server, cfg config, v 
 		_ = hs.Close()
 	}
 	logger.Info("prro-mcp stopped")
+	return nil
+}
+
+// healthcheck перевіряє живість сервера для HEALTHCHECK Docker: в образі
+// distroless немає ні shell, ні wget.
+func healthcheck(url string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("health check %s: %s", url, resp.Status)
+	}
 	return nil
 }
 
