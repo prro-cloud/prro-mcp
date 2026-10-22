@@ -27,12 +27,16 @@ func registerTasks(s *mcp.Server, src clientsrc.Source) {
 			"close_offline_session, abandon_offline_session or sync_register. status is pending (queued), " +
 			"processing, succeeded (see result) or failed (see fault) — a failed task is returned as data, not as " +
 			"a tool error. fault.code is a stable id with a namespace: dps.* (rejected by the DPS fiscal server), " +
-			"fiscal.* (document validation), return.* (return checked against the original receipt), signer.* " +
-			"(qualified e-signature), state.* (registrar state); fault.class says what helps: resync, config, " +
+			"fiscal.* (document validation), return.* (return checked against the original receipt), storno.* " +
+			"(storno checked against the receipt it cancels: only the register's last document can be cancelled), " +
+			"signer.* (qualified e-signature), state.* (registrar state); fault.class says what helps: resync, config, " +
 			"precursor (a missing previous step such as an open shift), user_action, transient (retry), request " +
 			"(fix the request), internal. result holds the documents the task issued: fiscal_number from the DPS " +
 			"(computed locally for an offline document), receipt_url for the buyer, tax_url in the taxpayer " +
-			"cabinet, and testing=true when the documents are test documents without fiscal effect.",
+			"cabinet, and testing=true when the documents are test documents without fiscal effect. A close_shift " +
+			"task has result.zreport.totals: the Z report totals submitted to the DPS (realiz = sales, return = " +
+			"returns, each with count, sum, pay_forms and taxes by rate; service_in/service_out = cash " +
+			"deposits/withdrawals). Amounts are decimal strings in UAH.",
 		input: func(s *jsonschema.Schema) { requireID(s, "task_id") },
 		call: func(ctx context.Context, c *prro.Client, in TaskInput) (*prro.Task, error) {
 			return c.Tasks.Get(ctx, in.TaskID)
@@ -92,6 +96,11 @@ func summarizeTask(t *prro.Task) string {
 				b.WriteString(", " + d.doc.ReceiptURL)
 			}
 			b.WriteString(".")
+		}
+		if r.ZReport != nil && r.ZReport.Totals != nil {
+			zt := r.ZReport.Totals
+			fmt.Fprintf(&b, "\nZ report totals: %d sale(s) for %s UAH, %d return(s) for %s UAH, cash in %s, cash out %s.",
+				zt.Sales.Count, zt.Sales.Sum, zt.Returns.Count, zt.Returns.Sum, zt.ServiceIn, zt.ServiceOut)
 		}
 		if a := r.OfflineAbandon; a != nil {
 			fmt.Fprintf(&b, "\nOffline session %d abandoned: %d document(s) held by the DPS, %d not received.",
