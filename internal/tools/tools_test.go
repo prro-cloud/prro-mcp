@@ -336,6 +336,25 @@ func TestGetTaskSucceeded(t *testing.T) {
 	wantContains(t, text(res), "Task t-1 (receipt): succeeded", "TEST documents", "Receipt: fiscal number 123456789, local number 512", "https://r.prro.cloud/abc")
 }
 
+func TestGetTaskCloseShiftTotals(t *testing.T) {
+	cs, api := newSession(t)
+	api.handle(t, "getTask", 200, `{"task_id":"t-3","type":"close_shift","status":"succeeded",
+		"result":{"prro_id":"r-1","shift_id":"s-1","shift_number":147,
+		  "zreport":{"document_id":"d-2","local_number":520,"fiscal_number":"123456790","register_fiscal_number":"4000123456",
+		    "totals":{"realiz":{"count":10,"sum":"2500.00","pay_forms":[{"code":0,"name":"Готівка","sum":"2500.00"}],
+		      "taxes":[{"letter":"А","name":"ПДВ","rate":"20.00","turnover":"2500.00","sum":"416.67"}]},
+		      "return":{"count":0,"sum":"0.00"},"service_in":"500.00","service_out":"0.00"}}}}`)
+
+	res := callTool(t, cs, "get_task", map[string]any{"task_id": "t-3"})
+	mustOK(t, res)
+	task := structured[prro.Task](t, res)
+	if z := task.Result.ZReport; z == nil || z.Totals == nil || len(z.Totals.Sales.Taxes) != 1 || z.Totals.Sales.Taxes[0].Sum != "416.67" {
+		t.Errorf("zreport = %+v", task.Result.ZReport)
+	}
+	wantContains(t, text(res), "Z report: fiscal number 123456790",
+		"Z report totals: 10 sale(s) for 2500.00 UAH, 0 return(s) for 0.00 UAH, cash in 500.00, cash out 0.00.")
+}
+
 // Завдання, що завершилося помилкою, — дані, а не помилка інструмента.
 func TestGetTaskFailed(t *testing.T) {
 	cs, api := newSession(t)

@@ -65,7 +65,8 @@ func registerRegisters(s *mcp.Server, src clientsrc.Source) {
 			"running shift number, status opening/opened/closing/closed, and testing=true means every document " +
 			"of the shift is a test document without fiscal effect — always check it before telling the user a " +
 			"receipt was fiscalized. shift_totals are the running totals the Z report will be built from " +
-			"(realiz = sales, return = returns, service_in/service_out = cash deposits/withdrawals). " +
+			"(realiz = sales, return = returns, service_in/service_out = cash deposits/withdrawals; a cancelled " +
+			"(storno) receipt is subtracted; no tax breakdown — the Z report totals in the close_shift task have it). " +
 			"cash_balance counts only documents that went through the service; a zero as_of means no data, not " +
 			"an empty drawer. offline_session is present while the register works offline; offline_limits are the " +
 			"legal limits (36 h per session, 168 h per month) and offline_month_used_seconds the time used this " +
