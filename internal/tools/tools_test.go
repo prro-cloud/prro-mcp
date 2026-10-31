@@ -289,7 +289,7 @@ func TestGetCashRegisterState(t *testing.T) {
 		"shift_totals":{"realiz":{"count":10,"sum":"2500.00","pay_forms":[{"code":0,"name":"ГОТІВКА","sum":"2500.00"}]},
 		  "return":{"count":1,"sum":"100.00"},"service_in":"500.00","service_out":"0.00"},
 		"offline_session":{"id":"o-1","dps_session_id":77,"started_at":"2026-10-14T08:00:00Z","documents":3},
-		"offline_limits":{"session_seconds":129600,"month_seconds":604800},"offline_month_used_seconds":3600,
+		"offline_limits":{"session_seconds":129600,"month_seconds":604800,"enforced":true},"offline_month_used_seconds":3600,
 		"attention":{"reason":"offline_submission_paused","since":"2026-10-14T09:30:00Z"}}`)
 
 	res := callTool(t, cs, "get_cash_register_state", map[string]any{"cash_register_id": "r-1"})
@@ -309,11 +309,47 @@ func TestGetCashRegisterStateClosed(t *testing.T) {
 	cs, api := newSession(t)
 	api.handle(t, "getCashRegisterState", 200, `{"id":"r-1","fiscal_number":"4000123456","local_number":"1",
 		"mode":"production","state":"closed","cash_balance":{"amount":"0.00"},
-		"offline_limits":{"session_seconds":129600,"month_seconds":604800}}`)
+		"offline_limits":{"session_seconds":129600,"month_seconds":604800,"enforced":true}}`)
 
 	res := callTool(t, cs, "get_cash_register_state", map[string]any{"cash_register_id": "r-1"})
 	mustOK(t, res)
 	wantContains(t, text(res), "No open shift", "no cash movements seen yet")
+	if strings.Contains(text(res), "lifted") {
+		t.Errorf("enforced limits reported as lifted: %s", text(res))
+	}
+}
+
+func TestGetCashRegisterStateOfflinePaused(t *testing.T) {
+	cs, api := newSession(t)
+	api.handle(t, "getCashRegisterState", 200, `{"id":"r-1","fiscal_number":"4000123456","local_number":"1",
+		"mode":"production","state":"offline","cash_balance":{"amount":"0.00"},
+		"offline_session":{"id":"o-1","dps_session_id":77,"started_at":"2026-10-14T08:00:00Z","documents":3,
+		  "submit_paused_at":"2026-10-14T09:30:00Z",
+		  "submit_fault":{"code":"dps.offline_package_rejected","class":"user_action","message":"Пакет відхилено","upstream_message":"Помилка підпису"}},
+		"offline_limits":{"session_seconds":129600,"month_seconds":604800,"enforced":false}}`)
+
+	res := callTool(t, cs, "get_cash_register_state", map[string]any{"cash_register_id": "r-1"})
+	mustOK(t, res)
+	st := structured[prro.CashRegisterState](t, res)
+	if st.OfflineSession == nil || st.OfflineSession.SubmitFault == nil || st.OfflineLimits.Enforced {
+		t.Errorf("state = %+v", st)
+	}
+	wantContains(t, text(res), "Submission to the DPS PAUSED since 2026-10-14T09:30:00Z",
+		"fault dps.offline_package_rejected (class user_action), Пакет відхилено", "DPS said: Помилка підпису",
+		"Offline limits are lifted")
+}
+
+func TestGetCashRegisterStateLimitsRestored(t *testing.T) {
+	cs, api := newSession(t)
+	api.handle(t, "getCashRegisterState", 200, `{"id":"r-1","mode":"production","state":"closed",
+		"offline_limits":{"session_seconds":129600,"month_seconds":604800,"enforced":true,"restored_at":"2026-10-20T00:00:00Z"}}`)
+
+	res := callTool(t, cs, "get_cash_register_state", map[string]any{"cash_register_id": "r-1"})
+	mustOK(t, res)
+	wantContains(t, text(res), "Offline limits were restored at 2026-10-20T00:00:00Z")
+	if strings.Contains(text(res), "lifted") {
+		t.Errorf("enforced limits reported as lifted: %s", text(res))
+	}
 }
 
 func TestGetTaskSucceeded(t *testing.T) {
@@ -583,7 +619,7 @@ func TestSummariesWithMissingValues(t *testing.T) {
 		"latency_ms":0,"samples":0,"failures":0,"tunables":{"window_seconds":300,"degraded_latency_ms":1500,"probe_interval_seconds":30}}`)
 	api.handle(t, "getCashRegisterState", 200, `{"id":"r-1","fiscal_number":"4000123456","local_number":"1",
 		"mode":"production","state":"opened","current_shift":{"id":"s-1","number":5,"status":"opening"},
-		"attention":{"reason":"auto_close_failing"},"offline_limits":{"session_seconds":129600,"month_seconds":604800}}`)
+		"attention":{"reason":"auto_close_failing"},"offline_limits":{"session_seconds":129600,"month_seconds":604800,"enforced":true}}`)
 	api.handle(t, "listWebhookDeliveries", 200, `{"deliveries":[{"id":"d-1","event":"task.failed","status":"failed",
 		"attempts":2,"data":{},"next_attempt_at":"2026-10-14T10:00:00Z","created_at":"2026-10-14T09:00:00Z"}]}`)
 

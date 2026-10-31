@@ -21,9 +21,16 @@
 
 - `get_task`: у текстовому зведенні завдання закриття зміни — підсумки
   Z-звіту, подані до ДПС (`result.zreport.totals`).
+- `get_cash_register_state`: зведення повідомляє, що надсилання
+  офлайн-пакетів до ДПС зупинено (`offline_session.submit_paused_at`), з
+  помилкою ДПС (`submit_fault`), а також що офлайн-межі знято
+  (`offline_limits.enforced=false`) або повернуто (`restored_at`). Опис
+  інструмента пояснює ці поля.
 
 ### Змінено
 
+- prro-go 0.4.0, контракт API 0.10.0: ресурс `prro://openapi.yaml`
+  оновлено (make sync-spec).
 - prro-go 0.3.0, контракт API 0.8.0: ресурс `prro://openapi.yaml`
   оновлено; опис `get_task` згадує простір кодів збою `storno.*` і
   підсумки Z-звіту з розподілом за податками.
