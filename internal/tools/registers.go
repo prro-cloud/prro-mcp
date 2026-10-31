@@ -70,7 +70,12 @@ func registerRegisters(s *mcp.Server, src clientsrc.Source) {
 			"cash_balance counts only documents that went through the service; a zero as_of means no data, not " +
 			"an empty drawer. offline_session is present while the register works offline; offline_limits are the " +
 			"legal limits (36 h per session, 168 h per month) and offline_month_used_seconds the time used this " +
-			"month. attention is present when the register needs a human (reason recurring_remediation, " +
+			"month. offline_limits.enforced=false means the limits are lifted (clause 13 of the Final Provisions of " +
+			"Law No. 265): time is still counted, but documents are not rejected for exceeding it; restored_at is " +
+			"when the limits came back after being lifted, and used time counts from it if it is later than the " +
+			"start of the session or month. offline_session.submit_paused_at is set when the service stopped " +
+			"sending offline packages because the DPS rejected one, and submit_fault is that DPS error; sending " +
+			"resumes only after the cause is fixed and the offline session is retried. attention is present when the register needs a human (reason recurring_remediation, " +
 			"offline_submission_paused or auto_close_failing). Amounts are decimal strings in UAH.",
 		input: func(s *jsonschema.Schema) { requireID(s, "cash_register_id") },
 		call: func(ctx context.Context, c *prro.Client, in CashRegisterInput) (*prro.CashRegisterState, error) {
@@ -114,6 +119,25 @@ func summarizeRegister(st *prro.CashRegisterState) string {
 	if off := st.OfflineSession; off != nil {
 		fmt.Fprintf(&b, "\nOffline session %d%s, %d document(s) awaiting submission to the DPS.",
 			off.DPSSessionID, timePart("started", off.StartedAt), off.Documents)
+		if !off.SubmitPausedAt.IsZero() || off.SubmitFault != nil {
+			fmt.Fprintf(&b, "\nSubmission to the DPS PAUSED%s", timePart("since", off.SubmitPausedAt))
+			if f := off.SubmitFault; f != nil {
+				fmt.Fprintf(&b, ": fault %s (class %s)", f.Code, f.Class)
+				if f.Message != "" {
+					b.WriteString(", " + f.Message)
+				}
+			}
+			b.WriteString("; fix the cause and retry the offline session.")
+			if f := off.SubmitFault; f != nil && f.UpstreamMessage != "" {
+				b.WriteString("\nDPS said: " + f.UpstreamMessage)
+			}
+		}
+	}
+	// Нульові межі — поле offline_limits не прийшло: про зняття нічого не відомо.
+	if l := st.OfflineLimits; l.SessionSeconds > 0 && !l.Enforced {
+		b.WriteString("\nOffline limits are lifted: offline time is counted, but documents are not rejected for exceeding it.")
+	} else if !l.RestoredAt.IsZero() {
+		fmt.Fprintf(&b, "\nOffline limits were restored%s; used time counts from then.", timePart("at", l.RestoredAt))
 	}
 	if a := st.Attention; a != nil {
 		fmt.Fprintf(&b, "\nNEEDS ATTENTION%s: %s.", timePart("since", a.Since), a.Reason)
